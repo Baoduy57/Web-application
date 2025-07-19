@@ -1,61 +1,59 @@
 "use client";
 
-import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
-export default function EditPost() {
+export default function EditContact() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: "",
-    description: "",
-    image: "",
+    email: "",
+    phone: "",
+    group: "",
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // Lấy dữ liệu bài viết hiện tại
+  // Fetch current contact
   useEffect(() => {
+    if (!id) return;
     (async () => {
-      const res = await fetch(`/api/posts/${id}`);
-      const data = await res.json();
-      if (res.ok) {
+      try {
+        const res = await fetch(`/api/contacts/${id}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Contact not found");
+
         setForm({
           name: data.name || "",
-          description: data.description || "",
-          image: data.image || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          group: data.group || "",
         });
-      } else {
-        toast.error("❌ Không tìm thấy bài viết.");
+      } catch (error: any) {
+        toast.error(`❌ ${error.message}`);
       }
     })();
   }, [id]);
 
-  // Submit cập nhật
+  // Submit update
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    const formData = new FormData();
-    formData.append("name", form.name);
-    formData.append("description", form.description);
-    if (imageFile) {
-      formData.append("image", imageFile);
-    }
-
     try {
-      const res = await fetch(`/api/posts/${id}`, {
+      const res = await fetch(`/api/contacts/${id}`, {
         method: "PUT",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
       });
 
       const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update");
 
-      if (!res.ok) throw new Error(data.error || "Cập nhật thất bại");
-
-      toast.success("Cập nhật bài viết thành công!");
+      toast.success("✅ Contact updated successfully!");
       router.push("/");
       router.refresh();
     } catch (error: any) {
@@ -66,87 +64,88 @@ export default function EditPost() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white shadow rounded-md mt-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">
-        ✏️ Cập nhật bài viết
+    <div className="max-w-2xl mx-auto mt-12 px-6 py-8 bg-white shadow-lg rounded-lg">
+      <h1 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-2">
+        ✏️ Edit Contact
       </h1>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Tiêu đề */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Name */}
         <div>
-          <label className="block font-medium text-gray-700 mb-1">
-            Tiêu đề
+          <label className="block text-gray-700 font-semibold mb-2">
+            Full Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
-            className="w-full border rounded px-4 py-2 focus:ring focus:border-blue-400"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Enter full name"
           />
         </div>
 
-        {/* Mô tả */}
+        {/* Email */}
         <div>
-          <label className="block font-medium text-gray-700 mb-1">Mô tả</label>
-          <textarea
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            rows={4}
-            required
-            className="w-full border rounded px-4 py-2 focus:ring focus:border-blue-400"
-          ></textarea>
-        </div>
-
-        {/* Ảnh bài viết */}
-        <div>
-          <label className="block font-medium text-gray-700 mb-1">
-            Ảnh bài viết
+          <label className="block text-gray-700 font-semibold mb-2">
+            Email <span className="text-red-500">*</span>
           </label>
           <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) setImageFile(file);
-            }}
-            className="w-full"
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            required
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Enter email address"
           />
-
-          <div className="flex gap-4 mt-3">
-            {form.image && !imageFile && (
-              <div className="text-center">
-                <p className="text-sm text-gray-500 mb-1">Ảnh hiện tại</p>
-                <img
-                  src={form.image}
-                  alt="Ảnh bài viết"
-                  className="w-28 h-28 object-cover rounded border"
-                />
-              </div>
-            )}
-
-            {imageFile && (
-              <div className="text-center">
-                <p className="text-sm text-gray-500 mb-1">Ảnh mới</p>
-                <img
-                  src={URL.createObjectURL(imageFile)}
-                  alt="Ảnh mới"
-                  className="w-28 h-28 object-cover rounded border"
-                />
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* Nút cập nhật */}
+        {/* Phone */}
+        <div>
+          <label className="block text-gray-700 font-semibold mb-2">
+            Phone Number
+          </label>
+          <input
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={form.phone}
+            onChange={(e) => {
+              // Loại bỏ ký tự không phải số
+              const value = e.target.value.replace(/\D/g, "");
+              setForm({ ...form, phone: value });
+            }}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Optional phone number"
+          />
+        </div>
+
+        {/* Group */}
+        <div>
+          <label className="block text-gray-700 font-semibold mb-2">
+            Group
+          </label>
+          <select
+            value={form.group}
+            onChange={(e) => setForm({ ...form, group: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="">-- Select group (optional) --</option>
+            <option value="Family">Family</option>
+            <option value="Friends">Friends</option>
+            <option value="Work">Work</option>
+          </select>
+        </div>
+
+        {/* Submit button */}
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded transition ${
+          className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200 ${
             isSubmitting ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          {isSubmitting ? "Đang cập nhật..." : "✅ Cập nhật bài viết"}
+          {isSubmitting ? "Updating..." : "💾 Save Changes"}
         </button>
       </form>
     </div>

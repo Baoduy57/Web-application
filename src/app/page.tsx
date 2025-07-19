@@ -2,49 +2,63 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import SearchSortBar from "@/components/SearchSortBar";
 import { ToastContainer, toast } from "react-toastify";
+import SearchSortBar from "@/components/SearchSortBar";
 
-interface Post {
+interface Contact {
   _id: string;
   name: string;
-  description: string;
-  image?: string;
+  email: string;
+  phone: string;
+  group: string;
 }
 
-export default function Home() {
-  const [posts, setPosts] = useState<Post[]>([]);
+export default function ContactListPage() {
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [group, setGroup] = useState("");
 
   useEffect(() => {
-    fetchPosts();
+    fetchContacts();
   }, []);
 
-  const fetchPosts = async () => {
-    const res = await fetch("/api/posts");
-    const data = await res.json();
-    setPosts(data);
+  const fetchContacts = async () => {
+    try {
+      const res = await fetch("/api/contacts");
+      const data = await res.json();
+      setContacts(data);
+    } catch (err) {
+      toast.error("Failed to load contacts.");
+    }
   };
 
   const handleDelete = async (id: string) => {
-    const confirmed = confirm("Bạn có chắc chắn muốn xoá bài viết?");
+    const confirmed = confirm("Are you sure you want to delete this contact?");
     if (!confirmed) return;
 
-    const res = await fetch(`/api/posts/${id}`, {
+    const res = await fetch(`/api/contacts/${id}`, {
       method: "DELETE",
     });
 
     if (res.ok) {
-      setPosts((prev) => prev.filter((post) => post._id !== id));
-      toast.success(" Đã xoá bài viết thành công!");
+      setContacts((prev) => prev.filter((c) => c._id !== id));
+      toast.success("Contact deleted!");
     } else {
-      toast.error(" Lỗi khi xoá bài viết!");
+      toast.error("Failed to delete contact.");
     }
   };
 
-  const filteredPosts = posts
-    .filter((post) => post.name.toLowerCase().includes(search.toLowerCase()))
+  const groups = Array.from(
+    new Set(contacts.map((c) => c.group).filter(Boolean))
+  );
+
+  const filteredContacts = contacts
+    .filter(
+      (c) =>
+        c.name.toLowerCase().includes(search.toLowerCase()) &&
+        (group ? c.group === group : true)
+    )
     .sort((a, b) =>
       sortOrder === "asc"
         ? a.name.localeCompare(b.name)
@@ -52,61 +66,66 @@ export default function Home() {
     );
 
   return (
-    <main className="max-w-3xl mx-auto p-6 space-y-6">
+    <main className="max-w-5xl mx-auto p-6 space-y-6">
       <ToastContainer position="top-right" autoClose={3000} />
-
-      <h1 className="text-3xl font-bold">📋 Danh sách Bài đăng</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-4xl font-bold text-gray-800">📇 Contact List</h1>
+        <Link
+          href="/create"
+          className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition"
+        >
+          ➕ Add New Contact
+        </Link>
+      </div>
 
       <SearchSortBar
         search={search}
         setSearch={setSearch}
         sortOrder={sortOrder}
         setSortOrder={setSortOrder}
+        group={group}
+        setGroup={setGroup}
+        groups={groups}
       />
 
-      <Link
-        href="/create"
-        className="inline-block bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-      >
-        ➕ Tạo bài viết mới
-      </Link>
-
       <div className="space-y-4">
-        {filteredPosts.length > 0 ? (
-          filteredPosts.map((post) => (
+        {filteredContacts.length > 0 ? (
+          filteredContacts.map((contact) => (
             <div
-              key={post._id}
-              className="border rounded p-4 shadow flex flex-col sm:flex-row justify-between gap-4"
+              key={contact._id}
+              className="border rounded-lg p-5 shadow-sm hover:shadow-md transition bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
             >
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold">{post.name}</h2>
-                <p className="text-gray-600 mt-1">{post.description}</p>
-                {post.image && (
-                  <img
-                    src={post.image}
-                    alt={post.name}
-                    className="mt-2 w-40 h-40 object-cover rounded"
-                  />
+              <div className="flex-1 space-y-1">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {contact.name}
+                </h2>
+                <p className="text-gray-600">📧 {contact.email}</p>
+                {contact.phone && (
+                  <p className="text-gray-600">📱 {contact.phone}</p>
+                )}
+                {contact.group && (
+                  <p className="text-gray-500">👥 Group: {contact.group}</p>
                 )}
               </div>
-              <div className="flex flex-col gap-2 sm:items-end justify-center">
+
+              <div className="flex gap-2 sm:flex-col sm:items-end">
                 <Link
-                  href={`/edit/${post._id}`}
-                  className="bg-yellow-400 hover:bg-yellow-500 text-white text-sm px-4 py-2 rounded text-center"
+                  href={`/edit/${contact._id}`}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-4 py-2 rounded transition"
                 >
-                  ✏️ Sửa
+                  ✏️ Edit
                 </Link>
                 <button
-                  onClick={() => handleDelete(post._id)}
-                  className="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-2 rounded"
+                  onClick={() => handleDelete(contact._id)}
+                  className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded transition"
                 >
-                  🗑️ Xoá
+                  🗑️ Delete
                 </button>
               </div>
             </div>
           ))
         ) : (
-          <p>Không có bài viết nào.</p>
+          <p className="text-gray-500 italic">No contacts found.</p>
         )}
       </div>
     </main>
